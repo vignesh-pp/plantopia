@@ -1,6 +1,6 @@
-import React from 'react';
-import { X, Plus, Minus, ShoppingBag, Trash2 } from 'lucide-react';
-import { CartState } from '../types';
+import React from "react";
+import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
+import { CartState } from "../types";
 
 interface CartProps {
   cart: CartState;
@@ -9,13 +9,74 @@ interface CartProps {
   onRemoveItem: (plantId: string) => void;
 }
 
-const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveItem }) => {
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
+const Cart: React.FC<CartProps> = ({
+  cart,
+  onClose,
+  onUpdateQuantity,
+  onRemoveItem,
+}) => {
   if (!cart.isOpen) return null;
+
+  const handleCheckout = async () => {
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      alert("Razorpay SDK failed to load.");
+      return;
+    }
+
+    // Create Razorpay order on your backend
+    const result = await fetch(
+      "https://api-node-razor-payment.onrender.com/api/create-order",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ amount: cart.total }), // amount in INR
+      }
+    );
+
+    const data = await result.json();
+    const options = {
+      key: "rzp_test_rfyqpZtPjaZ5e9", // Replace with your Razorpay key_id
+      amount: cart.total * 100, // amount in paise
+      currency: "INR",
+      name: "Startup projects",
+      description: "Order Payment",
+      // image: "https://yourdomain.com/logo.png", // optional logo
+      order_id: data.orderId,
+      handler: function (response: any) {
+        alert("Payment successful!");
+        console.log(response);
+      },
+      prefill: {
+        name: "Vignesh P",
+        email: "pvignesh358@gmail.com",
+        contact: "9566805138",
+      },
+      theme: {
+        color: "#10B981",
+      },
+    };
+
+    const razor = new (window as any).Razorpay(options);
+    razor.open();
+  };
 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300"
         onClick={onClose}
       />
@@ -29,7 +90,9 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
               <ShoppingBag className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Shopping Cart</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Shopping Cart
+              </h2>
               <p className="text-sm text-gray-500">{cart.items.length} items</p>
             </div>
           </div>
@@ -48,8 +111,12 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
               <div className="text-gray-300 mb-4">
                 <ShoppingBag className="h-16 w-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-              <p className="text-gray-500 mb-6">Add some beautiful plants to get started!</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Your cart is empty
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Add some beautiful plants to get started!
+              </p>
               <button
                 onClick={onClose}
                 className="bg-emerald-500 text-white px-6 py-3 rounded-lg hover:bg-emerald-600 transition-colors duration-200"
@@ -60,7 +127,10 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
           ) : (
             <div className="space-y-4">
               {cart.items.map((item) => (
-                <div key={item.plant.id} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg hover:border-emerald-200 transition-colors duration-200">
+                <div
+                  key={item.plant.id}
+                  className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg hover:border-emerald-200 transition-colors duration-200"
+                >
                   <div className="flex-shrink-0">
                     <img
                       src={item.plant.image}
@@ -68,17 +138,19 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
                       className="w-16 h-16 object-cover rounded-lg"
                     />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-gray-900 truncate">
                       {item.plant.name}
                     </h3>
                     <p className="text-sm text-gray-500">${item.plant.price}</p>
-                    
+
                     <div className="flex items-center space-x-3 mt-2">
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                         <button
-                          onClick={() => onUpdateQuantity(item.plant.id, item.quantity - 1)}
+                          onClick={() =>
+                            onUpdateQuantity(item.plant.id, item.quantity - 1)
+                          }
                           className="p-1 hover:bg-gray-50 transition-colors duration-200"
                         >
                           <Minus className="h-3 w-3 text-gray-600" />
@@ -87,13 +159,15 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => onUpdateQuantity(item.plant.id, item.quantity + 1)}
+                          onClick={() =>
+                            onUpdateQuantity(item.plant.id, item.quantity + 1)
+                          }
                           className="p-1 hover:bg-gray-50 transition-colors duration-200"
                         >
                           <Plus className="h-3 w-3 text-gray-600" />
                         </button>
                       </div>
-                      
+
                       <button
                         onClick={() => onRemoveItem(item.plant.id)}
                         className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors duration-200"
@@ -102,7 +176,7 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-900">
                       ${(item.plant.price * item.quantity).toFixed(2)}
@@ -121,9 +195,12 @@ const Cart: React.FC<CartProps> = ({ cart, onClose, onUpdateQuantity, onRemoveIt
               <span>Total:</span>
               <span className="text-emerald-600">${cart.total.toFixed(2)}</span>
             </div>
-            
+
             <div className="space-y-3">
-              <button className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
                 Checkout
               </button>
               <button

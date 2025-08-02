@@ -37,7 +37,7 @@ export const plants: Plant[] = [
     name: 'Snake Plant',
     scientificName: 'Sansevieria trifasciata',
     price: 29.99,
-    image: 'https://images.pexels.com/photos/7084307/pexels-photo-7084307.jpeg?auto=compress&cs=tinysrgb&w=500',
+    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVO22xQthgxitlBD9-4Wk2OCot8pDTm_ZjQA&s',
     category: 'indoor',
     difficulty: 'easy',
     light: 'low',
